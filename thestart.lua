@@ -14,14 +14,16 @@ local Camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- AIMBOT ENGINE
+-- AIMBOT ENGINE (SMOOTH VERSION)
+local Smoothness = 0.15 -- Lower is smoother, higher is faster/snappier
+
 game:GetService("RunService").RenderStepped:Connect(function()
     if _G.AimbotEnabled then
         local closestPlayer = nil
         local shortestDistance = math.huge
 
         for _, v in pairs(Players:GetPlayers()) do
-            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
                 local pos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
                 if onScreen then
                     local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
@@ -35,10 +37,13 @@ game:GetService("RunService").RenderStepped:Connect(function()
         end
 
         if closestPlayer and closestPlayer.Character:FindFirstChild("Head") then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestPlayer.Character.Head.Position)
+            local targetPos = closestPlayer.Character.Head.Position
+            -- The "Lerp" makes the camera glide instead of teleporting
+            Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), Smoothness)
         end
     end
 end)
+
 
 -- SIMPLE ESP ENGINE
 game:GetService("RunService").RenderStepped:Connect(function()
