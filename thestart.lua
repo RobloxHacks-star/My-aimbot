@@ -4,39 +4,78 @@ local Window = Rayfield:CreateWindow({
    Name = "thestart Hub | Universal",
    LoadingTitle = "Loading thestart Hub...",
    LoadingSubtitle = "by thestart",
-   ConfigurationSaving = {
-      Enabled = true,
-      FolderName = "thestartHub"
-   }
+   ConfigurationSaving = { Enabled = true, FolderName = "thestartHub" }
 })
 
-local MainTab = Window:CreateTab("Combat", 4483362458) -- Combat Icon
+-- VARIABLES
+_G.AimbotEnabled = false
+_G.ESPEnabled = false
+local Camera = workspace.CurrentCamera
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- AIMBOT TOGGLE
+-- AIMBOT ENGINE
+game:GetService("RunService").RenderStepped:Connect(function()
+    if _G.AimbotEnabled then
+        local closestPlayer = nil
+        local shortestDistance = math.huge
+
+        for _, v in pairs(Players:GetPlayers()) do
+            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Humanoid") and v.Character.Humanoid.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+                if onScreen then
+                    local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                    local distance = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                    if distance < shortestDistance then
+                        closestPlayer = v
+                        shortestDistance = distance
+                    end
+                end
+            end
+        end
+
+        if closestPlayer and closestPlayer.Character:FindFirstChild("Head") then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closestPlayer.Character.Head.Position)
+        end
+    end
+end)
+
+-- SIMPLE ESP ENGINE
+game:GetService("RunService").RenderStepped:Connect(function()
+    for _, v in pairs(Players:GetPlayers()) do
+        if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            if _G.ESPEnabled then
+                if not v.Character:FindFirstChild("thestart_ESP") then
+                    local highlight = Instance.new("Highlight")
+                    highlight.Name = "thestart_ESP"
+                    highlight.Parent = v.Character
+                    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                    highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                end
+            else
+                if v.Character:FindFirstChild("thestart_ESP") then
+                    v.Character.thestart_ESP:Destroy()
+                end
+            end
+        end
+    end
+end)
+
+local MainTab = Window:CreateTab("Combat", 4483362458)
+
 MainTab:CreateToggle({
-   Name = "Aimbot (Lock On)",
+   Name = "Hard Lock Aimbot (Head)",
    CurrentValue = false,
    Callback = function(Value)
       _G.AimbotEnabled = Value
-      -- This is where the logic for the camera lock goes
    end,
 })
 
-local VisualsTab = Window:CreateTab("Visuals", 4483362458)
-
--- ESP TOGGLE
-VisualsTab:CreateToggle({
-   Name = "Player ESP (Boxes)",
+MainTab:CreateToggle({
+   Name = "Player Highlight ESP",
    CurrentValue = false,
    Callback = function(Value)
       _G.ESPEnabled = Value
-      -- This is where the ESP box logic goes
    end,
 })
 
-Rayfield:Notify({
-   Title = "Hub Loaded!",
-   Content = "thestart Hub is ready for action.",
-   Duration = 5,
-   Image = 4483362458,
-})
