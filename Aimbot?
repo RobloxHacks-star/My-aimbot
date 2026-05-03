@@ -1,0 +1,68 @@
+-- Simple Aimbot with GUI
+local Player = game.Players.LocalPlayer
+local Mouse = Player:GetMouse()
+local RunService = game:GetService("RunService")
+local Camera = game.Workspace.CurrentCamera
+
+local AimbotEnabled = false
+
+-- 1. Create the GUI
+local ScreenGui = Instance.new("ScreenGui")
+local MainFrame = Instance.new("Frame")
+local ToggleButton = Instance.new("TextButton")
+
+ScreenGui.Parent = game.CoreGui
+MainFrame.Parent = ScreenGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Position = UDim2.new(0.1, 0, 0.1, 0)
+MainFrame.Size = UDim2.new(0, 150, 0, 50)
+MainFrame.Active = true
+MainFrame.Draggable = true -- So you can move it on your screen
+
+ToggleButton.Parent = MainFrame
+ToggleButton.Size = UDim2.new(1, 0, 1, 0)
+ToggleButton.Text = "Aimbot: OFF"
+ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+
+-- 2. Toggle Logic
+ToggleButton.MouseButton1Click:Connect(function()
+    AimbotEnabled = not AimbotEnabled
+    if AimbotEnabled then
+        ToggleButton.Text = "Aimbot: ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+    else
+        ToggleButton.Text = "Aimbot: OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    end
+end)
+
+-- 3. The Aimbot Logic (Finds closest player)
+local function getClosestPlayer()
+    local closest = nil
+    local shortestDistance = math.huge
+
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= Player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            local pos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+            if onScreen then
+                local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
+                if distance < shortestDistance then
+                    closest = v
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    return closest
+end
+
+-- 4. Lock Camera to Target
+RunService.RenderStepped:Connect(function()
+    if AimbotEnabled then
+        local target = getClosestPlayer()
+        if target and target.Character then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.HumanoidRootPart.Position)
+        end
+    end
+end)
