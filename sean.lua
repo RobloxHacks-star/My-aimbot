@@ -1,88 +1,55 @@
- local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "SEAN HUB | V4 TOTAL",
-   LoadingTitle = "Sean Hub: Full Power",
+   Name = "SEAN HUB (UPDATE)",
+   LoadingTitle = "Sean Hub",
    LoadingSubtitle = "by Gemini x Sean",
    ConfigurationSaving = { Enabled = false }
 })
 
--- VARIABLES
-_G.Aimbot = false
+-- SETTINGS
 _G.SilentAim = false
-_G.Smoothness = 0.5
-_G.FOV = 150
-_G.AutoBackstab = false
+_G.TriggerBot = false
+_G.MagicBullets = false
+_G.Fly = false
+_G.FOV = 200
 
--- TAB 1: COMBAT (Added Silent Aim & Aimbot)
+-- TAB 1: COMBAT
 local CombatTab = Window:CreateTab("Combat", 4483362458)
 
-CombatTab:CreateSection("Aimbot Settings")
+CombatTab:CreateSection("Killer Features")
 
 CombatTab:CreateToggle({
-   Name = "Enable Aimbot",
-   CurrentValue = false,
-   Callback = function(Value) _G.Aimbot = Value end,
-})
-
-CombatTab:CreateToggle({
-   Name = "Silent Aim (Direct Hit)",
+   Name = "Silent Aim",
    CurrentValue = false,
    Callback = function(Value) _G.SilentAim = Value end,
 })
 
-CombatTab:CreateSlider({
-   Name = "Aimbot Smoothness",
-   Range = {0, 1}, Increment = 0.1, CurrentValue = 0.5,
-   Callback = function(Value) _G.Smoothness = Value end,
+CombatTab:CreateToggle({
+   Name = "Magic Bullets (Wallbang)",
+   CurrentValue = false,
+   Callback = function(Value) _G.MagicBullets = Value end,
 })
 
-CombatTab:CreateSlider({
-   Name = "FOV Size",
-   Range = {50, 500}, Increment = 10, CurrentValue = 150,
-   Callback = function(Value) _G.FOV = Value end,
+CombatTab:CreateToggle({
+   Name = "Trigger Bot",
+   CurrentValue = false,
+   Callback = function(Value) _G.TriggerBot = Value end,
 })
 
--- TAB 2: VISUALS (ESP)
-local VisualsTab = Window:CreateTab("Visuals", 4483362458)
+-- TAB 2: MOVEMENT
+local MovementTab = Window:CreateTab("Movement", 4483362458)
 
-VisualsTab:CreateToggle({
-   Name = "Enable ESP Highlights",
+MovementTab:CreateToggle({
+   Name = "Fly Mode",
    CurrentValue = false,
    Callback = function(Value)
-       _G.ESP = Value
-       for _, v in pairs(game.Players:GetPlayers()) do
-           if v ~= game.Players.LocalPlayer and v.Character then
-               if Value then
-                   local Highlight = Instance.new("Highlight", v.Character)
-                   Highlight.Name = "SeanHubESP"
-               else
-                   if v.Character:FindFirstChild("SeanHubESP") then v.Character.SeanHubESP:Destroy() end
-               end
-           end
-       end
-   end,
-})
-
--- TAB 3: RAGE (Auto-Backstab Loop)
-local RageTab = Window:CreateTab("Rage", 4483362458)
-
-RageTab:CreateToggle({
-   Name = "AUTO KILL LOBBY (Backstab Loop)",
-   CurrentValue = false,
-   Callback = function(Value)
-       _G.AutoBackstab = Value
+       _G.Fly = Value
        local lp = game.Players.LocalPlayer
        task.spawn(function()
-           while _G.AutoBackstab do
-               for _, v in pairs(game.Players:GetPlayers()) do
-                   if not _G.AutoBackstab then break end
-                   if v ~= lp and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
-                       -- Fixed TP: Moves you behind and slightly above them
-                       lp.Character.HumanoidRootPart.CFrame = v.Character.HumanoidRootPart.CFrame * CFrame.new(0, 1, 2.5)
-                       lp.Character.HumanoidRootPart.CFrame = CFrame.new(lp.Character.HumanoidRootPart.Position, v.Character.HumanoidRootPart.Position)
-                       task.wait(0.3)
-                   end
+           while _G.Fly do
+               if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+                   lp.Character.HumanoidRootPart.Velocity = Vector3.new(0, 45, 0)
                end
                task.wait(0.1)
            end
@@ -90,14 +57,46 @@ RageTab:CreateToggle({
    end,
 })
 
--- AIMBOT SYSTEM LOGIC
-task.spawn(function()
-    local Camera = workspace.CurrentCamera
-    local LP = game.Players.LocalPlayer
-    game:GetService("RunService").RenderStepped:Connect(function()
-        if _G.Aimbot or _G.SilentAim then
-            -- [Insert target selection logic here]
+MovementTab:CreateSlider({
+   Name = "Speed Boost",
+   Range = {16, 200}, Increment = 1, CurrentValue = 16,
+   Callback = function(Value) 
+       if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+           game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value 
+       end
+   end,
+})
+
+-- [INTERNAL LOGIC: SILENT AIM & MAGIC BULLETS]
+local LP = game.Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+local function GetTarget()
+    local Target = nil
+    local Dist = _G.FOV
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if v ~= LP and v.Character and v.Character:FindFirstChild("Head") then
+            local Pos, OnScreen = Camera:WorldToScreenPoint(v.Character.Head.Position)
+            if OnScreen then
+                local Mag = (Vector2.new(Pos.X, Pos.Y) - game:GetService("UserInputService"):GetMouseLocation()).Magnitude
+                if Mag < Dist then
+                    Dist = Mag
+                    Target = v
+                end
+            end
         end
-    end)
+    end
+    return Target
+end
+
+local OldNC
+OldNC = hookmetamethod(game, "__namecall", function(self, ...)
+    local Method = getnamecallmethod()
+    if (_G.SilentAim or _G.MagicBullets) and Method == "FindPartOnRayWithIgnoreList" then
+        local T = GetTarget()
+        if T then
+            return T.Character.Head, T.Character.Head.Position, Vector3.new(0,1,0), Enum.Material.Plastic
+        end
+    end
+    return OldNC(self, ...)
 end)
-    
