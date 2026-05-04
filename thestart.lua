@@ -1,11 +1,21 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-   Name = "thestart Hub | Universal",
-   LoadingTitle = "Loading thestart Hub...",
-   LoadingSubtitle = "by thestart",
-   ConfigurationSaving = { Enabled = true, FolderName = "thestartHub" }
+   Name = "Sean Hub",
+   LoadingTitle = "Sean Hub | Loading...",
+   LoadingSubtitle = "by Sean",
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "SeanHubConfig" 
+   },
+   Discord = {
+      Enabled = false,
+      Invite = "noinvite", 
+      RememberJoins = true 
+   },
+   KeySystem = false,
 })
+
 
 -- VARIABLES
 _G.AimbotEnabled = false
