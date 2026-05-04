@@ -14,8 +14,23 @@ local Camera = workspace.CurrentCamera
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 
--- AIMBOT ENGINE (SMOOTH VERSION)
-local Smoothness = 0.15 -- Lower is smoother, higher is faster/snappier
+-- AIMBOT ENGINE (LEGIT/VISIBILITY VERSION)
+local Smoothness = 0.15 
+
+local function IsVisible(targetPart)
+    local character = LocalPlayer.Character
+    if not character then return false end
+    
+    local params = RaycastParams.new()
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = {character, targetPart.Parent} -- Ignore yourself and the target
+    
+    local origin = Camera.CFrame.Position
+    local direction = (targetPart.Position - origin)
+    local ray = workspace:Raycast(origin, direction, params)
+    
+    return ray == nil -- If nil, nothing is in the way!
+end
 
 game:GetService("RunService").RenderStepped:Connect(function()
     if _G.AimbotEnabled then
@@ -23,22 +38,24 @@ game:GetService("RunService").RenderStepped:Connect(function()
         local shortestDistance = math.huge
 
         for _, v in pairs(Players:GetPlayers()) do
-            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character.Humanoid.Health > 0 then
-                local pos, onScreen = Camera:WorldToViewportPoint(v.Character.HumanoidRootPart.Position)
+            if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") and v.Character.Humanoid.Health > 0 then
+                local pos, onScreen = Camera:WorldToViewportPoint(v.Character.Head.Position)
                 if onScreen then
-                    local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
-                    local distance = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
-                    if distance < shortestDistance then
-                        closestPlayer = v
-                        shortestDistance = distance
+                    -- ONLY LOCK IF THEY ARE VISIBLE
+                    if IsVisible(v.Character.Head) then
+                        local mousePos = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                        local distance = (Vector2.new(pos.X, pos.Y) - mousePos).Magnitude
+                        if distance < shortestDistance then
+                            closestPlayer = v
+                            shortestDistance = distance
+                        end
                     end
                 end
             end
         end
 
-        if closestPlayer and closestPlayer.Character:FindFirstChild("Head") then
+        if closestPlayer then
             local targetPos = closestPlayer.Character.Head.Position
-            -- The "Lerp" makes the camera glide instead of teleporting
             Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, targetPos), Smoothness)
         end
     end
